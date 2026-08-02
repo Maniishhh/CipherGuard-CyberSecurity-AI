@@ -160,7 +160,7 @@ CipherGuard AI follows a privacy-first architecture.
 
 Watch CipherGuard AI in action and explore its AI-powered cybersecurity features, including **Privacy Risk Analysis**, **AES-256-GCM File Encryption & Decryption**, **Secure Password Generation**, and **Client-Side Security**.
 
-🎬 **Demo Video:** *https://drive.google.com/file/d/1Y3UbzKiYcvBooXz_4lQUYLUk6q6ISuBF/view?usp=sharing*
+🎬 **Demo Video:** *https://drive.google.com/file/d/1sMN5JOZvOJ_sipsLCL0x9RyIPT44pGCN/view?usp=sharing*
 
 # 👨‍💻 Developed By
 
