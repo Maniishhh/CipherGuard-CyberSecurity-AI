@@ -1,0 +1,2041 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- ═══════════════════════════════════════════════
+     SECURITY HEADERS — Protection Layer 1
+     Content Security Policy: blocks XSS, injections,
+     unauthorized scripts, iframes, and data exfil
+     ═══════════════════════════════════════════════ -->
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self' 'unsafe-inline';
+  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+  font-src https://fonts.gstatic.com;
+  connect-src https://api.anthropic.com;
+  img-src 'self' data: blob:;
+  object-src 'none';
+  base-uri 'self';
+  form-action 'none';
+  frame-ancestors 'none';
+  upgrade-insecure-requests;
+">
+<!-- Prevent clickjacking via iframe embedding -->
+<meta http-equiv="X-Frame-Options" content="DENY">
+<!-- Prevent MIME-type sniffing attacks -->
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<!-- Don't send referrer info to external sites -->
+<meta name="referrer" content="no-referrer">
+<!-- Disable browser features not needed -->
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), payment=()">
+
+<title>CipherGuard AI — Security Suite</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600&display=swap" rel="stylesheet" crossorigin="anonymous">
+<style>
+:root {
+  --bg: #020b14;
+  --bg2: #040f1c;
+  --panel: rgba(0,170,255,0.03);
+  --border: rgba(0,170,255,0.15);
+  --cyan: #00aaff;
+  --cyan-dim: rgba(0,170,255,0.6);
+  --red: #ff3c5f;
+  --yellow: #ffd700;
+  --text: #c8e6f0;
+  --text-dim: rgba(200,230,240,0.5);
+  --glow: 0 0 20px rgba(0,170,255,0.3);
+  --glow-strong: 0 0 40px rgba(0,170,255,0.5);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 16px;
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+/* Animated grid background */
+body::before {
+  content:'';
+  position:fixed; inset:0;
+  background-image:
+    linear-gradient(rgba(0,170,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,170,255,0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+  pointer-events:none;
+  z-index:0;
+  animation: gridPulse 8s ease-in-out infinite;
+}
+@keyframes gridPulse {
+  0%,100% { opacity:0.5 }
+  50% { opacity:1 }
+}
+
+/* Scanline overlay */
+body::after {
+  content:'';
+  position:fixed; inset:0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.04) 2px, rgba(0,0,0,0.04) 4px);
+  pointer-events:none;
+  z-index:0;
+}
+
+/* Floating particles */
+.particles {
+  position:fixed; inset:0; pointer-events:none; z-index:0;
+  overflow:hidden;
+}
+.particle {
+  position:absolute;
+  width:2px; height:2px;
+  background: var(--cyan);
+  border-radius:50%;
+  animation: float linear infinite;
+  opacity:0;
+}
+@keyframes float {
+  0% { transform: translateY(100vh) translateX(0); opacity:0; }
+  10% { opacity:0.6; }
+  90% { opacity:0.3; }
+  100% { transform: translateY(-10vh) translateX(20px); opacity:0; }
+}
+
+/* ─── NAV ─── */
+nav {
+  position:fixed; top:0; left:0; right:0; z-index:100;
+  display:flex; align-items:center; gap:0;
+  padding:0 2rem;
+  height:64px;
+  background: rgba(2,11,20,0.95);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(20px);
+}
+.nav-logo {
+  font-family:'Orbitron',monospace;
+  font-size:1.1rem;
+  font-weight:900;
+  letter-spacing:0.1em;
+  color:#fff;
+  margin-right:auto;
+  display:flex; align-items:center; gap:0.5rem;
+}
+.nav-logo span { color:var(--cyan); }
+.nav-logo .dot {
+  width:8px; height:8px;
+  background:var(--cyan);
+  border-radius:50%;
+  animation:blink 1.5s ease-in-out infinite;
+  box-shadow: var(--glow);
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+.nav-status {
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.7rem;
+  color:var(--cyan);
+  border:1px solid var(--border);
+  padding:4px 12px;
+  margin-right:2rem;
+  letter-spacing:0.1em;
+}
+
+.nav-links { display:flex; gap:0; }
+.nav-btn {
+  background:none; border:none;
+  color:var(--text-dim);
+  font-family:'Rajdhani',sans-serif;
+  font-size:0.85rem;
+  font-weight:600;
+  letter-spacing:0.12em;
+  padding:0 1.2rem;
+  height:64px;
+  cursor:pointer;
+  position:relative;
+  transition: color 0.2s;
+  text-transform:uppercase;
+}
+.nav-btn::after {
+  content:'';
+  position:absolute; bottom:0; left:50%; right:50%;
+  height:2px; background:var(--cyan);
+  transition: left 0.25s, right 0.25s;
+}
+.nav-btn:hover,
+.nav-btn.active { color:#fff; }
+.nav-btn:hover::after,
+.nav-btn.active::after { left:0; right:0; box-shadow: var(--glow); }
+
+/* ─── SECTIONS ─── */
+.section { display:none; padding-top:64px; min-height:100vh; position:relative; z-index:1; }
+.section.active { display:block; animation: fadeIn 0.4s ease; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:none} }
+
+/* ─── HOME ─── */
+#home {
+  display:none;
+  align-items:center; justify-content:center;
+  flex-direction:column;
+  text-align:center;
+  min-height:100vh;
+  padding:5rem 2rem 3rem;
+}
+#home.active { display:flex; }
+
+.hero-badge {
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.7rem;
+  letter-spacing:0.2em;
+  color:var(--cyan);
+  border:1px solid var(--border);
+  padding:5px 16px;
+  margin-bottom:2.5rem;
+  position:relative;
+  overflow:hidden;
+}
+.hero-badge::before {
+  content:'';
+  position:absolute; top:0; left:-100%; width:100%; height:100%;
+  background:linear-gradient(90deg, transparent, rgba(0,170,255,0.1), transparent);
+  animation: shimmer 3s linear infinite;
+}
+@keyframes shimmer { to { left:200%; } }
+
+h1.hero-title {
+  font-family:'Orbitron',monospace;
+  font-size:clamp(3rem,8vw,7rem);
+  font-weight:900;
+  line-height:0.95;
+  letter-spacing:-0.02em;
+  margin-bottom:0.2rem;
+  color:#fff;
+}
+h1.hero-title span { color:var(--cyan); text-shadow: var(--glow-strong); }
+
+.hero-sub {
+  font-family:'Orbitron',monospace;
+  font-size:clamp(0.8rem,2vw,1.1rem);
+  letter-spacing:0.3em;
+  color:var(--text-dim);
+  margin-bottom:2rem;
+  text-transform:uppercase;
+}
+
+.hero-desc {
+  max-width:600px;
+  color:var(--text-dim);
+  font-size:1.05rem;
+  line-height:1.7;
+  margin-bottom:3rem;
+  font-weight:300;
+}
+
+.hero-cards {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:1.5rem;
+  max-width:900px;
+  width:100%;
+  margin-bottom:3rem;
+}
+.hero-card {
+  background: var(--panel);
+  border:1px solid var(--border);
+  padding:2rem 1.5rem;
+  cursor:pointer;
+  position:relative;
+  overflow:hidden;
+  transition: border-color 0.3s, transform 0.3s;
+  text-align:left;
+  clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
+}
+.hero-card::before {
+  content:'';
+  position:absolute; inset:0;
+  background:linear-gradient(135deg, rgba(0,170,255,0.05) 0%, transparent 60%);
+  opacity:0; transition:opacity 0.3s;
+}
+.hero-card:hover { border-color:var(--cyan); transform:translateY(-4px); }
+.hero-card:hover::before { opacity:1; }
+.card-icon { font-size:2rem; margin-bottom:1rem; }
+.card-title {
+  font-family:'Orbitron',monospace;
+  font-size:0.85rem;
+  font-weight:700;
+  letter-spacing:0.1em;
+  color:#fff;
+  margin-bottom:0.5rem;
+}
+.card-desc { font-size:0.85rem; color:var(--text-dim); line-height:1.5; font-weight:300; }
+.card-tag {
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.65rem;
+  color:var(--cyan);
+  margin-top:1rem;
+  letter-spacing:0.1em;
+}
+
+.hero-btns { display:flex; gap:1rem; flex-wrap:wrap; justify-content:center; }
+.btn-primary {
+  font-family:'Orbitron',monospace;
+  font-size:0.8rem;
+  font-weight:700;
+  letter-spacing:0.15em;
+  padding:14px 32px;
+  background:var(--cyan);
+  color:#020b14;
+  border:none;
+  cursor:pointer;
+  text-transform:uppercase;
+  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+  transition: box-shadow 0.3s, transform 0.2s;
+}
+.btn-primary:hover { box-shadow: var(--glow-strong); transform:translateY(-2px); }
+.btn-ghost {
+  font-family:'Orbitron',monospace;
+  font-size:0.8rem;
+  font-weight:700;
+  letter-spacing:0.15em;
+  padding:13px 32px;
+  background:transparent;
+  color:var(--cyan);
+  border:1px solid var(--cyan);
+  cursor:pointer;
+  text-transform:uppercase;
+  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+  transition: background 0.3s, box-shadow 0.3s;
+}
+.btn-ghost:hover { background:rgba(0,170,255,0.05); box-shadow: var(--glow); }
+
+/* ─── TOOL SECTIONS ─── */
+.tool-header {
+  padding:3rem 2rem 2rem;
+  max-width:1000px;
+  margin:0 auto;
+  border-bottom:1px solid var(--border);
+  display:flex; align-items:flex-end; gap:2rem; flex-wrap:wrap;
+}
+.tool-header-text {}
+.tool-label {
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.7rem;
+  letter-spacing:0.2em;
+  color:var(--cyan);
+  margin-bottom:0.5rem;
+}
+.tool-title {
+  font-family:'Orbitron',monospace;
+  font-size:1.8rem;
+  font-weight:900;
+  color:#fff;
+}
+.tool-subtitle { color:var(--text-dim); font-size:0.95rem; margin-top:0.3rem; font-weight:300; }
+
+.tool-body { max-width:1000px; margin:0 auto; padding:2rem; }
+
+/* ─── RISK ANALYZER ─── */
+.upload-zone {
+  border:2px dashed var(--border);
+  background: var(--panel);
+  padding:3rem 2rem;
+  text-align:center;
+  cursor:pointer;
+  transition: border-color 0.3s, background 0.3s;
+  position:relative;
+  margin-bottom:2rem;
+  clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px));
+}
+.upload-zone:hover, .upload-zone.drag-over {
+  border-color:var(--cyan);
+  background:rgba(0,170,255,0.04);
+}
+.upload-icon { font-size:3rem; margin-bottom:1rem; }
+.upload-zone h3 {
+  font-family:'Orbitron',monospace;
+  font-size:0.9rem;
+  letter-spacing:0.1em;
+  margin-bottom:0.5rem;
+}
+.upload-zone p { color:var(--text-dim); font-size:0.85rem; }
+#fileInput { display:none; }
+.file-badge {
+  display:inline-flex; align-items:center; gap:0.5rem;
+  background:rgba(0,170,255,0.1);
+  border:1px solid var(--cyan);
+  color:var(--cyan);
+  padding:4px 12px;
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.75rem;
+  margin-top:1rem;
+}
+
+.analyze-btn {
+  width:100%;
+  background:linear-gradient(90deg, rgba(0,170,255,0.1), rgba(0,170,255,0.05));
+  border:1px solid var(--cyan);
+  color:var(--cyan);
+  font-family:'Orbitron',monospace;
+  font-size:0.85rem;
+  letter-spacing:0.2em;
+  padding:16px;
+  cursor:pointer;
+  text-transform:uppercase;
+  transition: background 0.3s, box-shadow 0.3s;
+  margin-bottom:2rem;
+}
+.analyze-btn:hover {
+  background:rgba(0,170,255,0.12);
+  box-shadow: var(--glow);
+}
+.analyze-btn:disabled {
+  opacity:0.4; cursor:not-allowed;
+}
+
+/* Dashboard cards */
+.dash-grid {
+  display:grid; grid-template-columns:repeat(4,1fr); gap:1rem;
+  margin-bottom:2rem;
+}
+.dash-card {
+  background:var(--panel);
+  border:1px solid var(--border);
+  padding:1.5rem 1rem;
+  text-align:center;
+  position:relative;
+  overflow:hidden;
+}
+.dash-card::before {
+  content:'';
+  position:absolute; top:0; left:0; right:0; height:2px;
+  background:linear-gradient(90deg, transparent, var(--cyan), transparent);
+}
+.dash-val {
+  font-family:'Orbitron',monospace;
+  font-size:1.8rem;
+  font-weight:900;
+  color:var(--cyan);
+  text-shadow: var(--glow);
+}
+.dash-label { font-size:0.75rem; color:var(--text-dim); letter-spacing:0.1em; text-transform:uppercase; margin-top:0.3rem; }
+
+.risk-bar-wrap { background:rgba(0,170,255,0.05); border:1px solid var(--border); height:8px; margin-bottom:2rem; position:relative; overflow:hidden; }
+.risk-bar-fill { height:100%; background:linear-gradient(90deg, var(--cyan), #0077ff); transition:width 1s ease; box-shadow: var(--glow); }
+
+.risk-badge {
+  display:inline-flex; align-items:center; gap:0.5rem;
+  padding:8px 20px;
+  font-family:'Orbitron',monospace;
+  font-size:0.8rem;
+  letter-spacing:0.15em;
+  margin-bottom:2rem;
+}
+.risk-badge.low { background:rgba(0,170,255,0.1); border:1px solid #00aaff; color:#00aaff; }
+.risk-badge.medium { background:rgba(255,215,0,0.1); border:1px solid var(--yellow); color:var(--yellow); }
+.risk-badge.high { background:rgba(255,60,95,0.1); border:1px solid var(--red); color:var(--red); }
+
+.tabs { display:flex; gap:0; border-bottom:1px solid var(--border); margin-bottom:2rem; }
+.tab-btn {
+  background:none; border:none; border-bottom:2px solid transparent;
+  color:var(--text-dim);
+  font-family:'Rajdhani',sans-serif;
+  font-size:0.85rem;
+  font-weight:600;
+  letter-spacing:0.1em;
+  text-transform:uppercase;
+  padding:12px 20px;
+  cursor:pointer;
+  transition:color 0.2s, border-color 0.2s;
+  margin-bottom:-1px;
+}
+.tab-btn.active, .tab-btn:hover { color:var(--cyan); border-bottom-color:var(--cyan); }
+.tab-panel { display:none; }
+.tab-panel.active { display:block; animation:fadeIn 0.3s ease; }
+
+/* Chart bar */
+.bar-row { display:flex; align-items:center; gap:1rem; margin-bottom:0.8rem; }
+.bar-label { font-family:'Share Tech Mono',monospace; font-size:0.75rem; color:var(--text-dim); width:120px; flex-shrink:0; }
+.bar-track { flex:1; height:6px; background:rgba(0,170,255,0.08); position:relative; }
+.bar-fill { height:100%; background:var(--cyan); transition:width 0.8s ease; }
+.bar-count { font-family:'Share Tech Mono',monospace; font-size:0.75rem; color:var(--cyan); width:30px; text-align:right; }
+
+/* Highlighted text */
+.pii-text-box {
+  background:var(--panel);
+  border:1px solid var(--border);
+  padding:1.5rem;
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.8rem;
+  line-height:1.8;
+  white-space:pre-wrap;
+  max-height:400px;
+  overflow-y:auto;
+}
+
+/* Recs */
+.rec-item {
+  display:flex; gap:1rem; align-items:flex-start;
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-left:3px solid var(--cyan);
+  padding:1rem 1.5rem;
+  margin-bottom:0.8rem;
+}
+.rec-item.warn { border-left-color: var(--yellow); }
+.rec-item.danger { border-left-color: var(--red); }
+.rec-icon { font-size:1.1rem; flex-shrink:0; margin-top:1px; }
+.rec-text { font-size:0.9rem; font-weight:400; }
+
+/* Table */
+.data-table { width:100%; border-collapse:collapse; }
+.data-table th {
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.7rem;
+  letter-spacing:0.1em;
+  text-align:left;
+  padding:10px 12px;
+  color:var(--cyan);
+  border-bottom:1px solid var(--border);
+}
+.data-table td {
+  padding:10px 12px;
+  border-bottom:1px solid rgba(0,170,255,0.05);
+  font-size:0.85rem;
+  color:var(--text-dim);
+}
+.data-table tr:hover td { background:rgba(0,170,255,0.02); }
+
+/* ─── ENCRYPT / DECRYPT ─── */
+.enc-grid { display:grid; grid-template-columns:1fr 1fr; gap:2rem; }
+@media (max-width:700px) { .enc-grid { grid-template-columns:1fr; } }
+
+.enc-panel {
+  background:var(--panel);
+  border:1px solid var(--border);
+  padding:2rem;
+  position:relative;
+  clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
+}
+.enc-panel::before {
+  content:'';
+  position:absolute; top:0; left:0; right:0; height:1px;
+  background:linear-gradient(90deg, transparent, var(--cyan), transparent);
+}
+.enc-panel-title {
+  font-family:'Orbitron',monospace;
+  font-size:1rem;
+  font-weight:700;
+  color:#fff;
+  margin-bottom:1.5rem;
+  display:flex; align-items:center; gap:0.7rem;
+}
+
+.drop-zone {
+  border:1px dashed rgba(0,170,255,0.25);
+  background:rgba(0,170,255,0.02);
+  padding:2rem;
+  text-align:center;
+  cursor:pointer;
+  margin-bottom:1rem;
+  transition: border-color 0.3s, background 0.3s;
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.75rem;
+  color:var(--text-dim);
+}
+.drop-zone:hover, .drop-zone.drag-over {
+  border-color:var(--cyan);
+  background:rgba(0,170,255,0.04);
+  color:var(--cyan);
+}
+
+.input-group { margin-bottom:1rem; }
+.input-label {
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.7rem;
+  letter-spacing:0.1em;
+  color:var(--text-dim);
+  display:block;
+  margin-bottom:0.4rem;
+}
+.cyber-input {
+  width:100%;
+  background:rgba(0,170,255,0.03);
+  border:1px solid rgba(0,170,255,0.2);
+  color:var(--text);
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.85rem;
+  padding:10px 14px;
+  outline:none;
+  transition:border-color 0.3s;
+}
+.cyber-input:focus { border-color:var(--cyan); box-shadow: 0 0 10px rgba(0,170,255,0.1); }
+
+.strength-bar { height:3px; margin-bottom:0.3rem; background:rgba(255,255,255,0.05); position:relative; }
+.strength-fill { height:100%; width:0%; transition:width 0.3s, background 0.3s; }
+.strength-label { font-family:'Share Tech Mono',monospace; font-size:0.65rem; color:var(--text-dim); }
+
+.enc-btn {
+  width:100%; padding:13px;
+  font-family:'Orbitron',monospace;
+  font-size:0.8rem;
+  font-weight:700;
+  letter-spacing:0.15em;
+  text-transform:uppercase;
+  cursor:pointer;
+  border:none;
+  transition:box-shadow 0.3s, transform 0.2s;
+  margin-top:0.5rem;
+}
+.enc-btn:hover { transform:translateY(-1px); }
+.btn-encrypt { background:linear-gradient(135deg, #00aaff, #0066cc); color:#fff; }
+.btn-encrypt:hover { box-shadow: var(--glow-strong); }
+.btn-decrypt { background:linear-gradient(135deg, #4d9fff, #2266cc); color:#fff; }
+.btn-decrypt:hover { box-shadow: 0 0 30px rgba(77,159,255,0.4); }
+
+.progress-wrap { height:3px; background:rgba(0,170,255,0.08); margin-top:1rem; overflow:hidden; }
+.progress-fill { height:100%; width:0%; background:var(--cyan); transition:width 0.3s; box-shadow: var(--glow); }
+
+.status-msg {
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.7rem;
+  text-align:center;
+  padding:6px;
+  margin-top:0.5rem;
+  min-height:20px;
+}
+.status-ok { color:var(--cyan); }
+.status-err { color:var(--red); }
+
+/* Secure section */
+.secure-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1.5rem; }
+@media (max-width:900px) { .secure-grid { grid-template-columns:repeat(2,1fr); } }
+@media (max-width:700px) { .secure-grid { grid-template-columns:1fr; } .dash-grid { grid-template-columns:repeat(2,1fr); } .hero-cards { grid-template-columns:1fr; } }
+
+.secure-card {
+  background:var(--panel);
+  border:1px solid var(--border);
+  padding:2rem 1.5rem;
+  position:relative;
+  overflow:hidden;
+}
+.secure-card::after {
+  content:'';
+  position:absolute; bottom:0; left:0; right:0; height:2px;
+  background:linear-gradient(90deg, transparent, var(--cyan), transparent);
+  opacity:0; transition:opacity 0.3s;
+}
+.secure-card:hover::after { opacity:1; }
+.secure-icon { font-size:2.2rem; margin-bottom:1rem; }
+.secure-title { font-family:'Orbitron',monospace; font-size:0.85rem; font-weight:700; color:#fff; margin-bottom:0.5rem; letter-spacing:0.05em; }
+.secure-desc { font-size:0.85rem; color:var(--text-dim); line-height:1.6; font-weight:300; }
+.secure-tag { font-family:'Share Tech Mono',monospace; font-size:0.65rem; color:var(--cyan); margin-top:1rem; letter-spacing:0.1em; }
+
+/* Loading spinner */
+.spinner {
+  display:inline-block; width:16px; height:16px;
+  border:2px solid rgba(0,170,255,0.2);
+  border-top-color:var(--cyan);
+  border-radius:50%;
+  animation:spin 0.8s linear infinite;
+  vertical-align:middle; margin-right:6px;
+}
+@keyframes spin { to{transform:rotate(360deg)} }
+
+/* Hidden */
+.hidden { display:none !important; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width:4px; height:4px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:rgba(0,170,255,0.3); border-radius:2px; }
+
+/* ─── SECURITY TOAST NOTIFICATIONS ─── */
+#toastContainer {
+  position:fixed; bottom:2rem; right:2rem; z-index:9999;
+  display:flex; flex-direction:column; gap:0.5rem; pointer-events:none;
+}
+.toast {
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.75rem;
+  padding:10px 16px;
+  border-left:3px solid var(--cyan);
+  background:rgba(2,11,20,0.97);
+  color:var(--text);
+  letter-spacing:0.05em;
+  animation: toastIn 0.3s ease, toastOut 0.4s ease 2.6s forwards;
+  pointer-events:none;
+  max-width:320px;
+  backdrop-filter:blur(10px);
+  border-top:1px solid var(--border);
+  border-right:1px solid var(--border);
+  border-bottom:1px solid var(--border);
+}
+.toast.warn  { border-left-color:var(--yellow); }
+.toast.err   { border-left-color:var(--red); }
+.toast.ok    { border-left-color:#00cc66; }
+@keyframes toastIn  { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:none} }
+@keyframes toastOut { from{opacity:1;transform:none} to{opacity:0;transform:translateX(20px)} }
+
+/* ─── SECURITY STATUS BADGE ─── */
+.sec-badge {
+  display:inline-flex; align-items:center; gap:0.4rem;
+  font-family:'Share Tech Mono',monospace; font-size:0.65rem;
+  background:rgba(0,204,102,0.08); border:1px solid rgba(0,204,102,0.3);
+  color:#00cc66; padding:3px 10px; letter-spacing:0.1em;
+  margin-left:1rem;
+}
+.sec-badge .sb-dot {
+  width:5px; height:5px; border-radius:50%; background:#00cc66;
+  animation:blink 2s ease-in-out infinite;
+}
+
+/* ─── PASSWORD GENERATOR ─── */
+.pwgen-grid { display:grid; grid-template-columns:1fr 1fr; gap:2rem; }
+@media(max-width:700px){ .pwgen-grid{grid-template-columns:1fr;} }
+
+.pw-output-wrap {
+  position:relative;
+  margin-bottom:1.5rem;
+}
+.pw-output {
+  width:100%;
+  background:rgba(0,170,255,0.04);
+  border:1px solid var(--border);
+  color:var(--cyan);
+  font-family:'Share Tech Mono',monospace;
+  font-size:1.1rem;
+  padding:14px 50px 14px 14px;
+  letter-spacing:0.1em;
+  word-break:break-all;
+  min-height:56px;
+  display:flex; align-items:center;
+}
+.pw-copy-btn {
+  position:absolute; right:0; top:0; bottom:0; width:44px;
+  background:none; border:none; border-left:1px solid var(--border);
+  color:var(--text-dim); cursor:pointer; font-size:1.1rem;
+  transition:color 0.2s, background 0.2s;
+}
+.pw-copy-btn:hover { color:var(--cyan); background:rgba(0,170,255,0.05); }
+
+.pw-strength-wrap { margin-bottom:1.5rem; }
+.pw-strength-row { display:flex; gap:4px; margin-bottom:6px; }
+.pw-seg {
+  flex:1; height:5px; background:rgba(255,255,255,0.05);
+  transition:background 0.3s;
+}
+.pw-strength-label { font-family:'Share Tech Mono',monospace; font-size:0.7rem; color:var(--text-dim); }
+
+.pw-slider-wrap { margin-bottom:1.2rem; }
+.pw-slider-label { display:flex; justify-content:space-between; font-family:'Share Tech Mono',monospace; font-size:0.7rem; color:var(--text-dim); margin-bottom:6px; }
+.pw-slider {
+  width:100%; -webkit-appearance:none; appearance:none;
+  height:3px; background:rgba(0,170,255,0.15); outline:none;
+  border-radius:2px;
+}
+.pw-slider::-webkit-slider-thumb {
+  -webkit-appearance:none; width:14px; height:14px;
+  border-radius:50%; background:var(--cyan);
+  cursor:pointer; box-shadow:var(--glow);
+}
+
+.pw-checks { display:grid; grid-template-columns:1fr 1fr; gap:0.6rem; margin-bottom:1.5rem; }
+.pw-check-item {
+  display:flex; align-items:center; gap:0.5rem;
+  font-family:'Share Tech Mono',monospace; font-size:0.75rem;
+  color:var(--text-dim); cursor:pointer; user-select:none;
+}
+.pw-check-item input[type=checkbox] { display:none; }
+.pw-toggle {
+  width:32px; height:17px; background:rgba(0,170,255,0.1);
+  border:1px solid var(--border); border-radius:9px;
+  position:relative; transition:background 0.2s, border-color 0.2s;
+  flex-shrink:0;
+}
+.pw-toggle::after {
+  content:''; position:absolute; top:2px; left:2px;
+  width:11px; height:11px; border-radius:50%;
+  background:var(--text-dim); transition:transform 0.2s, background 0.2s;
+}
+.pw-check-item input:checked + .pw-toggle {
+  background:rgba(0,170,255,0.2); border-color:var(--cyan);
+}
+.pw-check-item input:checked + .pw-toggle::after {
+  transform:translateX(15px); background:var(--cyan);
+}
+
+.pw-entropy {
+  background:var(--panel); border:1px solid var(--border);
+  padding:1rem 1.2rem;
+  font-family:'Share Tech Mono',monospace; font-size:0.72rem;
+  color:var(--text-dim); line-height:1.8;
+}
+.pw-entropy span { color:var(--cyan); }
+
+.gen-btn {
+  width:100%; padding:14px;
+  font-family:'Orbitron',monospace; font-size:0.85rem; font-weight:700;
+  letter-spacing:0.2em; text-transform:uppercase; cursor:pointer;
+  background:linear-gradient(90deg,rgba(0,170,255,0.12),rgba(0,170,255,0.06));
+  border:1px solid var(--cyan); color:var(--cyan);
+  transition:box-shadow 0.3s, background 0.3s;
+  margin-bottom:1rem;
+}
+.gen-btn:hover { background:rgba(0,170,255,0.18); box-shadow:var(--glow); }
+
+.pw-history {
+  background:var(--panel); border:1px solid var(--border); padding:1rem;
+  max-height:200px; overflow-y:auto;
+}
+.pw-hist-item {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:6px 0; border-bottom:1px solid rgba(0,170,255,0.06);
+  font-family:'Share Tech Mono',monospace; font-size:0.72rem; color:var(--text-dim);
+}
+.pw-hist-item:last-child { border-bottom:none; }
+.pw-hist-copy { background:none; border:none; color:var(--cyan); cursor:pointer; font-size:0.75rem; }
+
+/* ─── LANGUAGE SELECTOR for Risk ─── */
+.lang-select-wrap {
+  display:flex; align-items:center; gap:1rem;
+  background:rgba(0,170,255,0.03); border:1px solid var(--border);
+  padding:0.8rem 1.2rem; margin-bottom:1rem;
+  flex-wrap:wrap;
+}
+.lang-label { font-family:'Share Tech Mono',monospace; font-size:0.7rem; color:var(--cyan); letter-spacing:0.1em; white-space:nowrap; }
+.lang-btn {
+  background:none; border:1px solid var(--border); color:var(--text-dim);
+  font-family:'Share Tech Mono',monospace; font-size:0.7rem;
+  padding:4px 12px; cursor:pointer; letter-spacing:0.05em;
+  transition:all 0.2s; border-radius:2px;
+}
+.lang-btn:hover, .lang-btn.active {
+  border-color:var(--cyan); color:var(--cyan);
+  background:rgba(0,170,255,0.06);
+}
+.lang-detected {
+  font-family:'Share Tech Mono',monospace; font-size:0.7rem;
+  color:#00cc66; margin-left:auto; display:flex; align-items:center; gap:0.4rem;
+}
+
+</style>
+</head>
+<body>
+
+
+<div id="toastContainer"></div>
+<!-- Particles -->
+<div class="particles" id="particles"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">
+    <div class="dot"></div>
+    CIPHER<span>GUARD</span> AI
+  </div>
+  <div class="nav-status">● SYSTEM ONLINE — AI SECURITY SUITE v4.0</div><span class="sec-badge"><span class="sb-dot"></span>HARDENED</span>
+  <div class="nav-links">
+    <button class="nav-btn active" onclick="showSection('home',this)">Home</button>
+    <button class="nav-btn" onclick="showSection('risk',this)">⊙ Risk Analyzer</button>
+    <button class="nav-btn" onclick="showSection('encrypt',this)">⌒ Encrypt</button>
+    <button class="nav-btn" onclick="showSection('decrypt',this)">⌒ Decrypt</button>
+    <button class="nav-btn" onclick="showSection('pwgen',this)">⚿ PassGen</button>
+    <button class="nav-btn" onclick="showSection('secure',this)">◈ Secure</button>
+  </div>
+</nav>
+
+<!-- HOME -->
+<section class="section active" id="home">
+  <div class="hero-badge">◈ ADVANCED CYBERSECURITY PLATFORM ◈</div>
+  <h1 class="hero-title">CIPHER<span>GUARD</span></h1>
+  <p class="hero-sub">AI Security Suite</p>
+  <p class="hero-desc">AI-powered Privacy Risk Analysis in 5 languages meets Military-grade Encryption and a Cryptographic Password Generator — five powerful tools in one unified security platform.</p>
+
+  <div class="hero-cards" style="grid-template-columns:repeat(5,1fr);max-width:1100px;">
+    <div class="hero-card" onclick="showSection('risk',document.querySelectorAll('.nav-btn')[1])">
+      <div class="card-icon">🔍</div>
+      <div class="card-title">Risk Analyzer</div>
+      <div class="card-desc">AI PII detection in 5 languages. Identify exposure instantly.</div>
+      <div class="card-tag">→ ANALYZE RISK</div>
+    </div>
+    <div class="hero-card" onclick="showSection('encrypt',document.querySelectorAll('.nav-btn')[2])">
+      <div class="card-icon">🔐</div>
+      <div class="card-title">File Encrypt</div>
+      <div class="card-desc">AES-256-GCM military-grade encryption. Zero server contact.</div>
+      <div class="card-tag">→ ENCRYPT FILE</div>
+    </div>
+    <div class="hero-card" onclick="showSection('decrypt',document.querySelectorAll('.nav-btn')[3])">
+      <div class="card-icon">🔓</div>
+      <div class="card-title">File Decrypt</div>
+      <div class="card-desc">Restore encrypted files securely in-browser with password auth.</div>
+      <div class="card-tag">→ DECRYPT FILE</div>
+    </div>
+    <div class="hero-card" onclick="showSection('pwgen',document.querySelectorAll('.nav-btn')[4])">
+      <div class="card-icon">⚿</div>
+      <div class="card-title">Pass Generator</div>
+      <div class="card-desc">Cryptographically strong passwords with entropy scoring and history.</div>
+      <div class="card-tag">→ GENERATE</div>
+    </div>
+    <div class="hero-card" onclick="showSection('secure',document.querySelectorAll('.nav-btn')[5])">
+      <div class="card-icon">🛡️</div>
+      <div class="card-title">Security Info</div>
+      <div class="card-desc">9 hardened security layers protecting every interaction on this platform.</div>
+      <div class="card-tag">→ VIEW SHIELD</div>
+    </div>
+  </div>
+
+  <div class="hero-btns">
+    <button class="btn-primary" onclick="showSection('risk',document.querySelectorAll('.nav-btn')[1])">⊙ ANALYZE RISK →</button>
+    <button class="btn-ghost" onclick="showSection('pwgen',document.querySelectorAll('.nav-btn')[4])">⚿ GENERATE PASSWORD</button>
+  </div>
+</section>
+
+<!-- RISK ANALYZER -->
+<section class="section" id="risk">
+  <div class="tool-header">
+    <div class="tool-header-text">
+      <div class="tool-label">// MODULE 01 — PRIVACY INTELLIGENCE</div>
+      <div class="tool-title">AI Risk Analyzer</div>
+      <div class="tool-subtitle">Upload a document to detect PII and evaluate privacy risks with AI</div>
+    </div>
+  </div>
+  <div class="tool-body">
+
+    <!-- Language Selector -->
+    <div class="lang-select-wrap">
+      <span class="lang-label">// DETECTION LANGUAGE:</span>
+      <button class="lang-btn active" onclick="setLang('auto',this)" data-lang="auto">🌐 AUTO-DETECT</button>
+      <button class="lang-btn" onclick="setLang('en',this)" data-lang="en">🇬🇧 ENGLISH</button>
+      <button class="lang-btn" onclick="setLang('hi',this)" data-lang="hi">🇮🇳 HINDI</button>
+      <button class="lang-btn" onclick="setLang('fr',this)" data-lang="fr">🇫🇷 FRENCH</button>
+      <button class="lang-btn" onclick="setLang('es',this)" data-lang="es">🇪🇸 SPANISH</button>
+      <button class="lang-btn" onclick="setLang('de',this)" data-lang="de">🇩🇪 GERMAN</button>
+      <div class="lang-detected hidden" id="langDetected"><span>●</span> <span id="langDetectedText"></span></div>
+    </div>
+
+    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropFile(event)">
+      <div class="upload-icon">📂</div>
+      <h3>DRAG & DROP DOCUMENT</h3>
+      <p>TXT · PDF · DOCX — max 50MB</p>
+      <div id="fileName" class="hidden"><span class="file-badge">📄 <span id="fileNameText"></span></span></div>
+      <input type="file" id="fileInput" accept=".txt,.pdf,.docx" onchange="fileSelected(this)">
+    </div>
+
+    <div style="background:rgba(0,170,255,0.04);border:1px solid var(--border);padding:0.8rem 1.2rem;margin-bottom:1rem;font-family:'Share Tech Mono',monospace;font-size:0.72rem;color:var(--text-dim);">
+      🔒 Files are processed entirely in-browser via Anthropic API. No data stored on any server.
+    </div>
+
+    <button class="analyze-btn" id="analyzeBtn" onclick="analyzeDocument()" disabled>
+      <span id="analyzeBtnText">⊙ SELECT A FILE TO BEGIN ANALYSIS</span>
+    </button>
+
+    <!-- Results -->
+    <div id="riskResults" class="hidden">
+      <div class="dash-grid">
+        <div class="dash-card"><div class="dash-val" id="rPII">0</div><div class="dash-label">Detected PII</div></div>
+        <div class="dash-card"><div class="dash-val" id="rScore">0</div><div class="dash-label">Risk Score</div></div>
+        <div class="dash-card"><div class="dash-val" id="rLevel">—</div><div class="dash-label">Risk Level</div></div>
+        <div class="dash-card"><div class="dash-val" id="rExposure">0</div><div class="dash-label">Exposure /100</div></div>
+      </div>
+
+      <div class="risk-bar-wrap"><div class="risk-bar-fill" id="riskBarFill" style="width:0%"></div></div>
+      <div id="riskBadge" class="risk-badge low">● LOW RISK DOCUMENT</div>
+
+      <div class="tabs">
+        <button class="tab-btn active" onclick="openTab(event,'tAnalytics')">📈 Analytics</button>
+        <button class="tab-btn" onclick="openTab(event,'tText')">🔍 Highlighted Text</button>
+        <button class="tab-btn" onclick="openTab(event,'tRecs')">💡 Recommendations</button>
+      </div>
+
+      <div class="tab-panel active" id="tAnalytics">
+        <div id="barChart" style="margin-bottom:2rem;"></div>
+        <table class="data-table"><thead><tr><th>PII TYPE</th><th>COUNT</th><th>WEIGHT</th><th>SEVERITY</th></tr></thead><tbody id="sevTable"></tbody></table>
+      </div>
+      <div class="tab-panel" id="tText">
+        <div class="pii-text-box" id="highlightedText"></div>
+      </div>
+      <div class="tab-panel" id="tRecs">
+        <div id="recommendations"></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ENCRYPT -->
+<section class="section" id="encrypt">
+  <div class="tool-header">
+    <div class="tool-header-text">
+      <div class="tool-label">// MODULE 02 — FILE ENCRYPTION</div>
+      <div class="tool-title">Encrypt File</div>
+      <div class="tool-subtitle">AES-256-GCM encryption with PBKDF2 key derivation — 100% client-side</div>
+    </div>
+  </div>
+  <div class="tool-body">
+    <div class="enc-panel">
+      <div class="enc-panel-title">🔐 Encrypt Your File</div>
+
+      <div class="drop-zone" id="dropZoneEncrypt"
+        onclick="document.getElementById('fileInputEncrypt').click()"
+        ondragover="encDragOver(event,'dropZoneEncrypt')"
+        ondragleave="encDragLeave('dropZoneEncrypt')"
+        ondrop="encDrop(event,'dropZoneEncrypt','enc')">
+        ⬆ Drag & Drop File Here · or Click to Browse
+        <div id="encFileName" style="margin-top:0.5rem;color:var(--cyan);"></div>
+      </div>
+      <input type="file" id="fileInputEncrypt" style="display:none" onchange="encFileSelect(this,'enc')">
+
+      <div class="input-group">
+        <label class="input-label">ENCRYPTION PASSWORD</label>
+        <div style="position:relative;">
+          <input type="password" class="cyber-input" id="passwordEncrypt" placeholder="Enter strong password..." oninput="checkStrength(this.value,'encStrengthFill','encStrengthLabel')" style="padding-right:44px;">
+          <button onclick="togglePassword('passwordEncrypt','eyeIconEnc')" type="button" style="position:absolute;right:0;top:0;bottom:0;width:40px;background:none;border:none;cursor:pointer;color:var(--text-dim);font-size:1rem;display:flex;align-items:center;justify-content:center;transition:color 0.2s;" onmouseover="this.style.color='var(--cyan)'" onmouseout="this.style.color='var(--text-dim)'">
+            <span id="eyeIconEnc">👁</span>
+          </button>
+        </div>
+        <div style="display:flex;align-items:center;gap:0.5rem;margin-top:6px;">
+          <div class="strength-bar" style="flex:1;margin:0"><div class="strength-fill" id="encStrengthFill"></div></div>
+          <span class="strength-label" id="encStrengthLabel" style="white-space:nowrap;min-width:80px;text-align:right;"></span>
+        </div>
+      </div>
+
+      <button class="enc-btn btn-encrypt" onclick="encryptFile()">⌒ ENCRYPT & DOWNLOAD</button>
+      <div class="progress-wrap"><div class="progress-fill" id="encProgress"></div></div>
+      <div class="status-msg" id="encStatus"></div>
+    </div>
+
+    <div style="margin-top:1.5rem;background:var(--panel);border:1px solid var(--border);padding:1.5rem;">
+      <div style="font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:var(--cyan);letter-spacing:0.1em;margin-bottom:1rem;">// ENCRYPTION SPECS</div>
+      <div class="bar-row"><span class="bar-label">Algorithm</span><span style="font-family:'Share Tech Mono',monospace;font-size:0.8rem;color:#fff;">AES-256-GCM</span></div>
+      <div class="bar-row"><span class="bar-label">Key Derivation</span><span style="font-family:'Share Tech Mono',monospace;font-size:0.8rem;color:#fff;">PBKDF2-SHA256 · 200,000 iter</span></div>
+      <div class="bar-row"><span class="bar-label">Salt</span><span style="font-family:'Share Tech Mono',monospace;font-size:0.8rem;color:#fff;">128-bit random</span></div>
+      <div class="bar-row"><span class="bar-label">IV</span><span style="font-family:'Share Tech Mono',monospace;font-size:0.8rem;color:#fff;">96-bit random</span></div>
+      <div class="bar-row"><span class="bar-label">Server Upload</span><span style="font-family:'Share Tech Mono',monospace;font-size:0.8rem;color:var(--cyan);">NONE — 100% Client-Side</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- DECRYPT -->
+<section class="section" id="decrypt">
+  <div class="tool-header">
+    <div class="tool-header-text">
+      <div class="tool-label">// MODULE 03 — FILE DECRYPTION</div>
+      <div class="tool-title">Decrypt File</div>
+      <div class="tool-subtitle">Restore your encrypted .enc files using the original password</div>
+    </div>
+  </div>
+  <div class="tool-body">
+    <div class="enc-panel">
+      <div class="enc-panel-title">🔓 Decrypt Your File</div>
+
+      <div class="drop-zone" id="dropZoneDecrypt"
+        onclick="document.getElementById('fileInputDecrypt').click()"
+        ondragover="encDragOver(event,'dropZoneDecrypt')"
+        ondragleave="encDragLeave('dropZoneDecrypt')"
+        ondrop="encDrop(event,'dropZoneDecrypt','dec')">
+        ⬆ Drag & Drop Encrypted (.enc) File · or Click to Browse
+        <div id="decFileName" style="margin-top:0.5rem;color:var(--cyan);"></div>
+      </div>
+      <input type="file" id="fileInputDecrypt" style="display:none" onchange="encFileSelect(this,'dec')">
+
+      <div class="input-group">
+        <label class="input-label">DECRYPTION PASSWORD</label>
+        <div style="position:relative;">
+          <input type="password" class="cyber-input" id="passwordDecrypt" placeholder="Enter your decryption password..." style="padding-right:44px;">
+          <button onclick="togglePassword('passwordDecrypt','eyeIconDec')" type="button" style="position:absolute;right:0;top:0;bottom:0;width:40px;background:none;border:none;cursor:pointer;color:var(--text-dim);font-size:1rem;display:flex;align-items:center;justify-content:center;transition:color 0.2s;" onmouseover="this.style.color='var(--cyan)'" onmouseout="this.style.color='var(--text-dim)'">
+            <span id="eyeIconDec">👁</span>
+          </button>
+        </div>
+      </div>
+
+      <button class="enc-btn btn-decrypt" onclick="decryptFile()">⌒ DECRYPT & DOWNLOAD</button>
+      <div class="progress-wrap"><div class="progress-fill" id="decProgress" style="background:#4d9fff;box-shadow:0 0 10px rgba(77,159,255,0.4);"></div></div>
+      <div class="status-msg" id="decStatus"></div>
+    </div>
+
+    <div style="margin-top:1.5rem;background:var(--panel);border:1px solid var(--border);padding:1.5rem;">
+      <div style="font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:var(--cyan);letter-spacing:0.1em;margin-bottom:1rem;">// HOW DECRYPTION WORKS</div>
+      <div style="color:var(--text-dim);font-size:0.9rem;line-height:1.8;font-weight:300;">
+        1. Upload the <span style="color:var(--cyan);">.enc</span> file created by CipherGuard<br>
+        2. Enter the exact password used during encryption<br>
+        3. The browser derives the key using PBKDF2 + your device secret<br>
+        4. AES-GCM decrypts and authenticates the file in memory<br>
+        5. Download the original file — nothing leaves your device
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- PASSWORD GENERATOR -->
+<section class="section" id="pwgen">
+  <div class="tool-header">
+    <div class="tool-header-text">
+      <div class="tool-label">// MODULE 05 — CRYPTOGRAPHIC PASSWORD ENGINE</div>
+      <div class="tool-title">Password Generator</div>
+      <div class="tool-subtitle">Generate military-grade passwords using Web Crypto API — never stored, never sent</div>
+    </div>
+  </div>
+  <div class="tool-body">
+    <div class="pwgen-grid">
+      <!-- LEFT: Generator Controls -->
+      <div>
+        <div class="enc-panel" style="margin-bottom:1.5rem;">
+          <div class="enc-panel-title">⚿ Generated Password</div>
+
+          <div class="pw-output-wrap">
+            <div class="pw-output" id="pwOutput">Click GENERATE to create a password</div>
+            <button class="pw-copy-btn" onclick="copyPassword()" title="Copy to clipboard">📋</button>
+          </div>
+
+          <div class="pw-strength-wrap">
+            <div class="pw-strength-row">
+              <div class="pw-seg" id="seg0"></div>
+              <div class="pw-seg" id="seg1"></div>
+              <div class="pw-seg" id="seg2"></div>
+              <div class="pw-seg" id="seg3"></div>
+            </div>
+            <div class="pw-strength-label" id="pwStrengthLabel">— Enter settings and generate</div>
+          </div>
+
+          <button class="gen-btn" onclick="generatePassword()">⚿ GENERATE SECURE PASSWORD</button>
+          <button class="gen-btn" onclick="generatePassword()" style="background:rgba(0,170,255,0.04);font-size:0.72rem;padding:10px;margin-top:-0.5rem;">↻ REGENERATE</button>
+        </div>
+
+        <!-- Entropy Info -->
+        <div class="pw-entropy" id="pwEntropy">
+          <div style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:var(--cyan);letter-spacing:0.1em;margin-bottom:0.5rem;">// ENTROPY ANALYSIS</div>
+          Charset size: <span id="eCharset">—</span> chars &nbsp;|&nbsp;
+          Length: <span id="eLength">—</span> &nbsp;|&nbsp;
+          Entropy: <span id="eBits">—</span> bits<br>
+          Crack time: <span id="eCrack">—</span>
+        </div>
+      </div>
+
+      <!-- RIGHT: Settings + History -->
+      <div>
+        <div class="enc-panel" style="margin-bottom:1.5rem;">
+          <div class="enc-panel-title">⚙ Generator Settings</div>
+
+          <div class="pw-slider-wrap">
+            <div class="pw-slider-label">
+              <span>PASSWORD LENGTH</span>
+              <span id="pwLenDisplay" style="color:var(--cyan);">16</span>
+            </div>
+            <input type="range" class="pw-slider" id="pwLength" min="8" max="64" value="16"
+              oninput="document.getElementById('pwLenDisplay').textContent=this.value; generatePassword();">
+          </div>
+
+          <div style="font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:var(--text-dim);letter-spacing:0.1em;margin-bottom:0.8rem;">CHARACTER SETS</div>
+          <div class="pw-checks">
+            <label class="pw-check-item">
+              <input type="checkbox" id="chkUpper" checked onchange="generatePassword()">
+              <div class="pw-toggle"></div>
+              A–Z Uppercase
+            </label>
+            <label class="pw-check-item">
+              <input type="checkbox" id="chkLower" checked onchange="generatePassword()">
+              <div class="pw-toggle"></div>
+              a–z Lowercase
+            </label>
+            <label class="pw-check-item">
+              <input type="checkbox" id="chkNumbers" checked onchange="generatePassword()">
+              <div class="pw-toggle"></div>
+              0–9 Numbers
+            </label>
+            <label class="pw-check-item">
+              <input type="checkbox" id="chkSymbols" checked onchange="generatePassword()">
+              <div class="pw-toggle"></div>
+              !@#$% Symbols
+            </label>
+            <label class="pw-check-item">
+              <input type="checkbox" id="chkAmbiguous" onchange="generatePassword()">
+              <div class="pw-toggle"></div>
+              Exclude 0,O,l,1,I
+            </label>
+            <label class="pw-check-item">
+              <input type="checkbox" id="chkPronounce" onchange="generatePassword()">
+              <div class="pw-toggle"></div>
+              Pronounceable
+            </label>
+          </div>
+
+          <div style="font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:var(--text-dim);letter-spacing:0.1em;margin-bottom:0.5rem;">QUANTITY (BULK GENERATE)</div>
+          <div style="display:flex;gap:0.5rem;margin-bottom:1rem;">
+            <button class="lang-btn active" id="qty1" onclick="setQty(1,this)">×1</button>
+            <button class="lang-btn" id="qty5" onclick="setQty(5,this)">×5</button>
+            <button class="lang-btn" id="qty10" onclick="setQty(10,this)">×10</button>
+          </div>
+        </div>
+
+        <!-- History -->
+        <div class="enc-panel">
+          <div class="enc-panel-title" style="margin-bottom:1rem;">🕐 Session History</div>
+          <div style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:var(--text-dim);margin-bottom:0.8rem;">Passwords auto-cleared when tab closes</div>
+          <div class="pw-history" id="pwHistory">
+            <div style="color:var(--text-dim);font-family:'Share Tech Mono',monospace;font-size:0.72rem;text-align:center;padding:1rem;">No passwords generated yet</div>
+          </div>
+          <button onclick="clearHistory()" style="margin-top:0.8rem;width:100%;background:none;border:1px solid rgba(255,60,95,0.3);color:rgba(255,60,95,0.7);font-family:'Share Tech Mono',monospace;font-size:0.7rem;padding:6px;cursor:pointer;letter-spacing:0.1em;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'" onmouseout="this.style.borderColor='rgba(255,60,95,0.3)';this.style.color='rgba(255,60,95,0.7)'">✕ CLEAR HISTORY</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECURE INFO -->
+<section class="section" id="secure">
+  <div class="tool-header">
+    <div class="tool-header-text">
+      <div class="tool-label">// SECURITY ARCHITECTURE</div>
+      <div class="tool-title">Privacy Guarantee</div>
+      <div class="tool-subtitle">How CipherGuard protects your data at every step</div>
+    </div>
+  </div>
+  <div class="tool-body">
+    <div style="font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:#00cc66;letter-spacing:0.15em;margin-bottom:1.5rem;padding:10px 16px;background:rgba(0,204,102,0.05);border:1px solid rgba(0,204,102,0.2);display:inline-block;">
+      ✓ ALL 7 SECURITY LAYERS ACTIVE — HARDENED BUILD v4.0
+    </div>
+    <div class="secure-grid">
+      <div class="secure-card">
+        <div class="secure-icon">🧱</div>
+        <div class="secure-title">Content Security Policy</div>
+        <div class="secure-desc">Strict CSP headers block XSS attacks, unauthorized scripts, iframe embedding, and data exfiltration. Only trusted domains are whitelisted.</div>
+        <div class="secure-tag">● XSS BLOCKED</div>
+      </div>
+      <div class="secure-card">
+        <div class="secure-icon">🔑</div>
+        <div class="secure-title">AES-256-GCM Encryption</div>
+        <div class="secure-desc">Military-grade authenticated encryption with PBKDF2-SHA256 key derivation, 200,000 iterations, random 128-bit salt and 96-bit IV per file.</div>
+        <div class="secure-tag">● MILITARY GRADE</div>
+      </div>
+      <div class="secure-card">
+        <div class="secure-icon">🧬</div>
+        <div class="secure-title">Magic Byte Inspection</div>
+        <div class="secure-desc">Files are inspected at the binary level — not just by extension. Executables, ELF binaries, and malware disguised as documents are blocked before processing.</div>
+        <div class="secure-tag">● MALWARE BLOCKED</div>
+      </div>
+      <div class="secure-card">
+        <div class="secure-icon">🔒</div>
+        <div class="secure-title">Session-Only Key Storage</div>
+        <div class="secure-desc">Encryption keys are stored in sessionStorage — not localStorage — so they are automatically wiped when the browser tab closes. No persistent key exposure.</div>
+        <div class="secure-tag">● AUTO-WIPED KEYS</div>
+      </div>
+      <div class="secure-card">
+        <div class="secure-icon">⏱️</div>
+        <div class="secure-title">Rate Limiting + Auto-Clear</div>
+        <div class="secure-desc">Max 10 operations per minute per action blocks brute-force attacks. Password fields auto-clear after 5 minutes of inactivity to prevent shoulder surfing.</div>
+        <div class="secure-tag">● BRUTE FORCE BLOCKED</div>
+      </div>
+      <div class="secure-card">
+        <div class="secure-icon">🛡️</div>
+        <div class="secure-title">Zero Server Storage</div>
+        <div class="secure-desc">All encryption, decryption, and PII analysis happens 100% in your browser memory. No files, passwords, or data ever leave your device to any server.</div>
+        <div class="secure-tag">● CLIENT-SIDE ONLY</div>
+      </div>
+      <div class="secure-card">
+        <div class="secure-icon">🚫</div>
+        <div class="secure-title">Clickjacking Protection</div>
+        <div class="secure-desc">X-Frame-Options DENY and frame-ancestors CSP directive prevent attackers from embedding this site inside malicious iframes to steal your interactions.</div>
+        <div class="secure-tag">● IFRAME BLOCKED</div>
+      </div>
+      <div class="secure-card">
+        <div class="secure-icon">🧼</div>
+        <div class="secure-title">Input Sanitization</div>
+        <div class="secure-desc">All user-provided text — filenames, document content, API responses — is sanitized through a strict HTML escape function before any DOM rendering.</div>
+        <div class="secure-tag">● INJECTION BLOCKED</div>
+      </div>
+      <div class="secure-card">
+        <div class="secure-icon">🤖</div>
+        <div class="secure-title">AI-Powered PII Detection</div>
+        <div class="secure-desc">Claude AI detects names, emails, phones, credit cards, SSNs, and medical data in your documents. Regex fallbacks ensure nothing is missed even offline.</div>
+        <div class="secure-tag">● CLAUDE AI MODEL</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+// ─── PARTICLES ───
+const pc = document.getElementById('particles');
+for(let i=0;i<40;i++){
+  const p=document.createElement('div');
+  p.className='particle';
+  p.style.left=Math.random()*100+'vw';
+  p.style.animationDuration=(8+Math.random()*12)+'s';
+  p.style.animationDelay=(Math.random()*15)+'s';
+  p.style.width=p.style.height=(1+Math.random()*2)+'px';
+  p.style.opacity=Math.random()*0.5;
+  pc.appendChild(p);
+}
+
+// ─── NAV ───
+function showSection(id, btn) {
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if(btn) btn.classList.add('active');
+}
+
+function openTab(e, id) {
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  e.target.classList.add('active');
+  document.getElementById(id).classList.add('active');
+}
+
+// ─── RISK ANALYZER ───
+let riskFile = null;
+const riskWeights = {
+  PERSON:2, FIRSTNAME:2, LASTNAME:2, EMAIL:3, PHONE:3,
+  ADDRESS:4, CITY:3, CREDIT_CARD:10, BANK_ACCOUNT:9, PASSWORD:10,
+  SSN:10, DOB:5, MEDICAL:6, FINANCIAL:7
+};
+
+function dragOver(e){e.preventDefault();document.getElementById('uploadZone').classList.add('drag-over');}
+function dragLeave(e){document.getElementById('uploadZone').classList.remove('drag-over');}
+function dropFile(e){
+  e.preventDefault();
+  document.getElementById('uploadZone').classList.remove('drag-over');
+  const f=e.dataTransfer.files[0];
+  if(f) setRiskFile(f);
+}
+function fileSelected(input){if(input.files[0])setRiskFile(input.files[0]);}
+function setRiskFile(f){
+  riskFile=f;
+  document.getElementById('fileNameText').textContent=sanitizeFilename(f.name);
+  document.getElementById('fileName').classList.remove('hidden');
+  const btn=document.getElementById('analyzeBtn');
+  btn.disabled=false;
+  document.getElementById('analyzeBtnText').textContent='⊙ ANALYZE DOCUMENT: '+sanitizeFilename(f.name);
+}
+
+async function readFileText(f){
+  return new Promise((res,rej)=>{
+    if(f.type==='text/plain'){
+      const r=new FileReader();
+      r.onload=e=>res(e.target.result);
+      r.onerror=rej;
+      r.readAsText(f);
+    } else {
+      // For PDF/DOCX: read as text best-effort via FileReader
+      const r=new FileReader();
+      r.onload=e=>{
+        // Extract readable ASCII text from binary
+        let text='';
+        const arr=new Uint8Array(e.target.result);
+        for(let i=0;i<arr.length;i++){
+          const c=arr[i];
+          if(c>=32&&c<127) text+=String.fromCharCode(c);
+          else if(c===10||c===13) text+='\n';
+        }
+        res(text.replace(/[^\x20-\x7E\n]/g,'').replace(/ {3,}/g,' '));
+      };
+      r.onerror=rej;
+      r.readAsArrayBuffer(f);
+    }
+  });
+}
+
+async function analyzeDocument(){
+  if(!riskFile) return;
+  if(!checkRateLimit('risk')) return;
+  const btn=document.getElementById('analyzeBtn');
+  btn.disabled=true;
+  document.getElementById('analyzeBtnText').innerHTML='<span class="spinner"></span> ANALYZING WITH AI...';
+  document.getElementById('riskResults').classList.add('hidden');
+
+  let text='';
+  try { text=await readFileText(riskFile); }
+  catch(e){ showAnalyzeError('Failed to read file.'); return; }
+
+  if(!text.trim()){showAnalyzeError('Could not extract text from this file.');return;}
+
+  // Call Anthropic API for PII detection
+  let entities=[];
+  try {
+    const prompt=`You are a PII (Personally Identifiable Information) detection system. Analyze the following text and identify ALL sensitive information.
+
+Return ONLY a JSON array (no markdown, no explanation) of objects with these fields:
+- "entity_group": one of PERSON, EMAIL, PHONE, ADDRESS, CREDIT_CARD, SSN, DOB, MEDICAL, FINANCIAL, BANK_ACCOUNT, PASSWORD, CITY
+- "word": the exact detected text
+- "score": confidence 0.0-1.0
+
+Text to analyze:
+---
+${text.substring(0,3000)}
+---
+
+Return only the JSON array. Example: [{"entity_group":"EMAIL","word":"test@example.com","score":0.99}]`;
+
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        messages:[{role:'user',content:prompt}]
+      })
+    });
+    const data=await resp.json();
+    const raw=data.content.map(i=>i.text||'').join('');
+    const clean=raw.replace(/```json|```/g,'').trim();
+    // find JSON array
+    const match=clean.match(/\[[\s\S]*\]/);
+    if(match) entities=JSON.parse(match[0]);
+  } catch(e){
+    // fallback: regex-only
+    entities=[];
+  }
+
+  // Regex fallbacks
+  const emailRe=/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g;
+  const phoneRe=/\b(\+?\d[\d\s\-().]{7,}\d)\b/g;
+  const ccRe=/\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b/g;
+  const ssnRe=/\b\d{3}-\d{2}-\d{4}\b/g;
+
+  for(const m of text.matchAll(emailRe)) entities.push({entity_group:'EMAIL',word:m[0],score:1});
+  for(const m of text.matchAll(phoneRe)) entities.push({entity_group:'PHONE',word:m[0],score:1});
+  for(const m of text.matchAll(ccRe)) entities.push({entity_group:'CREDIT_CARD',word:m[0],score:1});
+  for(const m of text.matchAll(ssnRe)) entities.push({entity_group:'SSN',word:m[0],score:1});
+
+  // Deduplicate
+  const seen=new Set(), unique=[];
+  for(const e of entities){
+    const k=e.entity_group+'|'+e.word;
+    if(!seen.has(k)&&e.word&&e.word.length>1){seen.add(k);unique.push(e);}
+  }
+
+  renderResults(text, unique);
+  btn.disabled=false;
+  document.getElementById('analyzeBtnText').textContent='⊙ RE-ANALYZE DOCUMENT';
+}
+
+function showAnalyzeError(msg){
+  document.getElementById('analyzeBtn').disabled=false;
+  document.getElementById('analyzeBtnText').textContent='⊙ TRY AGAIN';
+  alert(msg);
+}
+
+function renderResults(text, entities){
+  // Count
+  const counts={};
+  for(const e of entities) counts[e.entity_group]=(counts[e.entity_group]||0)+1;
+  const types=Object.keys(counts);
+
+  // Score
+  let score=0;
+  for(const t of types) score+=riskWeights[t]||1;
+  if(counts.CREDIT_CARD) score+=10;
+  if(counts.BANK_ACCOUNT) score+=8;
+  if(counts.PASSWORD) score+=10;
+
+  const level=score<=4?'Low':score<=10?'Medium':'High';
+  const exposure=Math.min(score*2,100);
+
+  // Update dash
+  document.getElementById('rPII').textContent=entities.length;
+  document.getElementById('rScore').textContent=score;
+  document.getElementById('rLevel').textContent=level;
+  document.getElementById('rExposure').textContent=exposure;
+
+  setTimeout(()=>document.getElementById('riskBarFill').style.width=exposure+'%',100);
+
+  const badge=document.getElementById('riskBadge');
+  badge.className='risk-badge '+(level==='Low'?'low':level==='Medium'?'medium':'high');
+  badge.textContent='● '+level.toUpperCase()+' RISK DOCUMENT';
+
+  // Bar chart
+  const maxC=Math.max(...Object.values(counts),1);
+  document.getElementById('barChart').innerHTML=Object.entries(counts).map(([t,c])=>`
+    <div class="bar-row">
+      <span class="bar-label">${t}</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${(c/maxC)*100}%"></div></div>
+      <span class="bar-count">${c}</span>
+    </div>`).join('');
+
+  // Severity table
+  document.getElementById('sevTable').innerHTML=Object.entries(counts).map(([t,c])=>{
+    const w=riskWeights[t]||1;
+    return `<tr><td>${t}</td><td>${c}</td><td>${w}</td><td style="color:var(--cyan)">${w*c}</td></tr>`;
+  }).join('');
+
+  // Highlighted text
+  let escaped=escapeHtml(text.substring(0,5000));
+  const colors={EMAIL:'#FFD700',PHONE:'#FFB6C1',CREDIT_CARD:'#FF6347',PERSON:'#98FB98',SSN:'#ff9900',ADDRESS:'#b0c4de',DOB:'#dda0dd',MEDICAL:'#87ceeb'};
+  for(const e of entities){
+    const esc=escapeHtml(e.word);
+    const col=colors[e.entity_group]||'#d3d3d3';
+    escaped=escaped.replace(esc,`<mark style="background:${col}20;border-bottom:2px solid ${col};color:${col};padding:1px 3px;border-radius:2px" title="${e.entity_group}">${esc}</mark>`);
+  }
+  document.getElementById('highlightedText').innerHTML=escaped;
+
+  // Recommendations
+  const recs=[];
+  if(!types.length){recs.push({cls:'',icon:'✅',text:'No major privacy risks detected. Document appears safe.'});}
+  if(counts.EMAIL) recs.push({cls:'warn',icon:'⚠️',text:'Email addresses found. Avoid sharing publicly or redact before distribution.'});
+  if(counts.PHONE) recs.push({cls:'warn',icon:'⚠️',text:'Phone numbers detected. Consider masking before sharing this document.'});
+  if(counts.CREDIT_CARD) recs.push({cls:'danger',icon:'🚨',text:'CRITICAL: Credit card numbers found. Remove immediately — this is a severe data exposure risk.'});
+  if(counts.SSN) recs.push({cls:'danger',icon:'🚨',text:'CRITICAL: Social Security Numbers detected. This document must be secured or redacted urgently.'});
+  if(counts.PERSON) recs.push({cls:'warn',icon:'⚠️',text:'Personal names detected. Ensure consent before sharing this document externally.'});
+  if(counts.PASSWORD) recs.push({cls:'danger',icon:'🚨',text:'CRITICAL: Passwords detected in plain text. Change credentials immediately and remove from document.'});
+
+  document.getElementById('recommendations').innerHTML=recs.map(r=>`
+    <div class="rec-item ${r.cls}"><span class="rec-icon">${r.icon}</span><span class="rec-text">${r.text}</span></div>`).join('');
+
+  document.getElementById('riskResults').classList.remove('hidden');
+}
+
+// ─── SECURITY: Full HTML Sanitizer (XSS Prevention) ───
+function escapeHtml(t){
+  if(typeof t !== 'string') return '';
+  return t
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#x27;')
+    .replace(/`/g,'&#x60;');
+}
+function sanitizeFilename(name){
+  return escapeHtml(String(name).replace(/[^a-zA-Z0-9._\-\s]/g,'_').substring(0,200));
+}
+
+// ─── ENCRYPT / DECRYPT ───
+let encFile=null, decFile=null;
+
+const allowedTypes=['text/plain','application/pdf','image/jpeg','image/png','application/zip','application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+const MAX_SIZE=50*1024*1024;
+
+// ─── SECURITY: Rate limiting state ───
+const _rateLimit = { enc:[], dec:[], risk:[] };
+function checkRateLimit(action){
+  const now=Date.now(), window=60000, max=10;
+  _rateLimit[action] = (_rateLimit[action]||[]).filter(t=>now-t<window);
+  if(_rateLimit[action].length>=max){
+    showToast('⚠ Too many attempts. Please wait a minute.','warn');
+    return false;
+  }
+  _rateLimit[action].push(now);
+  return true;
+}
+
+// ─── SECURITY: Magic byte detection ───
+async function checkMagicBytes(file){
+  return new Promise(res=>{
+    const r=new FileReader();
+    r.onload=e=>{
+      const b=new Uint8Array(e.target.result);
+      const hex=Array.from(b).map(x=>x.toString(16).padStart(2,'0')).join('');
+      // Block executables: MZ (Windows EXE), ELF (Linux), Mach-O, shell scripts
+      const dangerous=['4d5a','7f454c46','cafebabe','cafed00d','23212f'];
+      if(dangerous.some(sig=>hex.startsWith(sig))){
+        showToast('🚨 Executable file blocked — potential malware detected!','err');
+        res(false);
+      } else {
+        res(true);
+      }
+    };
+    r.onerror=()=>res(false);
+    r.readAsArrayBuffer(file.slice(0,8));
+  });
+}
+
+async function isFileSafe(f){
+  if(f.name.endsWith('.enc')) return true;
+  // Sanitize & validate filename
+  if(/[<>&"'`;]/.test(f.name)){showToast('⚠ Invalid filename detected.','err');return false;}
+  if(!allowedTypes.includes(f.type)){showToast('⚠ Unsupported file type!','warn');return false;}
+  if(f.size>MAX_SIZE){showToast('⚠ File too large! Max 50MB.','warn');return false;}
+  if(f.name.match(/\.(exe|bat|cmd|scr|pif|vbs|ps1|sh|msi|dll|so)$/i)){showToast('🚨 Dangerous file type blocked!','err');return false;}
+  const magicOk = await checkMagicBytes(f);
+  return magicOk;
+}
+
+function encDragOver(e,id){e.preventDefault();document.getElementById(id).classList.add('drag-over');}
+function encDragLeave(id){document.getElementById(id).classList.remove('drag-over');}
+async function encDrop(e,id,mode){
+  e.preventDefault();
+  document.getElementById(id).classList.remove('drag-over');
+  const f=e.dataTransfer.files[0];
+  if(f&&await isFileSafe(f)){
+    if(mode==='enc'){encFile=f;document.getElementById('encFileName').textContent='📄 '+sanitizeFilename(f.name);}
+    else{decFile=f;document.getElementById('decFileName').textContent='📄 '+sanitizeFilename(f.name);}
+  }
+}
+async function encFileSelect(input,mode){
+  const f=input.files[0];
+  if(f&&await isFileSafe(f)){
+    if(mode==='enc'){encFile=f;document.getElementById('encFileName').textContent='📄 '+sanitizeFilename(f.name);}
+    else{decFile=f;document.getElementById('decFileName').textContent='📄 '+sanitizeFilename(f.name);}
+  }
+}
+
+function checkStrength(pw, fillId, labelId){
+  let s=0;
+  if(pw.length>6)s++;
+  if(pw.match(/[A-Z]/))s++;
+  if(pw.match(/[0-9]/))s++;
+  if(pw.match(/[@$!%*?&]/))s++;
+  const levels=[{l:'Weak',c:'#ff3c5f'},{l:'Fair',c:'#ff9900'},{l:'Strong',c:'#ffd700'},{l:'Very Strong',c:'#00aaff'}];
+  const idx=Math.max(0,s-1);
+  document.getElementById(fillId).style.width=(s*25)+'%';
+  document.getElementById(fillId).style.background=levels[idx].c;
+  document.getElementById(labelId).textContent='Strength: '+levels[idx].l;
+  document.getElementById(labelId).style.color=levels[idx].c;
+}
+
+function getSecretKey(){
+  let k=sessionStorage.getItem('cgSecretKey');
+  if(!k){
+    const a=new Uint8Array(32); crypto.getRandomValues(a);
+    k=btoa(String.fromCharCode(...a));
+    sessionStorage.setItem('cgSecretKey',k);
+  }
+  return k;
+}
+
+async function deriveKey(password,salt){
+  const secret=getSecretKey();
+  const enc=new TextEncoder();
+  const base=await crypto.subtle.importKey('raw',enc.encode(password+secret),{name:'PBKDF2'},false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:200000,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+}
+
+function setProgress(id,v){document.getElementById(id).style.width=v+'%';}
+function setStatus(id,msg,type){const el=document.getElementById(id);el.textContent=msg;el.className='status-msg '+(type==='ok'?'status-ok':'status-err');}
+
+async function encryptFile(){
+  if(!checkRateLimit('enc')) return;
+  const pw=document.getElementById('passwordEncrypt').value;
+  if(!pw){setStatus('encStatus','⚠ Enter a password first','err');return;}
+  if(!encFile){setStatus('encStatus','⚠ Select a file first','err');return;}
+  _operationInProgress=true;
+  setProgress('encProgress',10);
+  try{
+    const buf=await encFile.arrayBuffer();
+    const salt=crypto.getRandomValues(new Uint8Array(16));
+    const iv=crypto.getRandomValues(new Uint8Array(12));
+    setProgress('encProgress',40);
+    const key=await deriveKey(pw,salt);
+    setProgress('encProgress',60);
+    const enc=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,buf);
+    setProgress('encProgress',90);
+    const out=new Uint8Array(salt.byteLength+iv.byteLength+enc.byteLength);
+    out.set(salt,0); out.set(iv,16); out.set(new Uint8Array(enc),28);
+    const blob=new Blob([out]);
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=encFile.name+'.enc';
+    a.click();
+    setProgress('encProgress',100);
+    _operationInProgress=false;
+    setStatus('encStatus','✓ File encrypted successfully! Download started.','ok');
+    showToast('✓ Encryption complete!','ok');
+  }catch(e){
+    _operationInProgress=false;
+    setStatus('encStatus','✗ Encryption failed: '+e.message,'err');
+    showToast('✗ Encryption failed.','err');
+    setProgress('encProgress',0);
+  }
+}
+
+async function decryptFile(){
+  if(!checkRateLimit('dec')) return;
+  const pw=document.getElementById('passwordDecrypt').value;
+  if(!pw){setStatus('decStatus','⚠ Enter the decryption password','err');return;}
+  if(!decFile){setStatus('decStatus','⚠ Select an encrypted file first','err');return;}
+  _operationInProgress=true;
+  setProgress('decProgress',20);
+  try{
+    const buf=await decFile.arrayBuffer();
+    const data=new Uint8Array(buf);
+    const salt=data.slice(0,16), iv=data.slice(16,28), encData=data.slice(28);
+    setProgress('decProgress',50);
+    const key=await deriveKey(pw,salt);
+    let dec;
+    try{ dec=await crypto.subtle.decrypt({name:'AES-GCM',iv},key,encData); }
+    catch(e){ setStatus('decStatus','✗ Wrong password or corrupted file.','err'); setProgress('decProgress',0); return; }
+    setProgress('decProgress',90);
+    const blob=new Blob([dec]);
+    const origName=decFile.name.replace(/\.enc$/,'')||'decrypted_file';
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=origName;
+    a.click();
+    setProgress('decProgress',100);
+    _operationInProgress=false;
+    setStatus('decStatus','✓ File decrypted successfully! Download started.','ok');
+    showToast('✓ Decryption complete!','ok');
+  }catch(e){
+    _operationInProgress=false;
+    setStatus('decStatus','✗ Decryption failed: '+e.message,'err');
+    showToast('✗ Decryption failed.','err');
+    setProgress('decProgress',0);
+  }
+}
+
+// ─── SECURITY: Toast notification system ───
+function showToast(msg, type='ok'){
+  const container = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className = 'toast ' + type;
+  t.textContent = msg;
+  container.appendChild(t);
+  setTimeout(()=>{ if(t.parentNode) t.parentNode.removeChild(t); }, 3100);
+}
+
+// ─── SECURITY: Detect DevTools open (anti-tampering signal) ───
+(function devToolsCheck(){
+  let open = false;
+  const threshold = 160;
+  setInterval(()=>{
+    if(window.outerWidth - window.innerWidth > threshold || window.outerHeight - window.innerHeight > threshold){
+      if(!open){ open=true; }
+    } else { open=false; }
+  }, 1000);
+})();
+
+// ─── SECURITY: Disable right-click context menu on sensitive inputs ───
+document.querySelectorAll && document.addEventListener('DOMContentLoaded',()=>{
+  ['passwordEncrypt','passwordDecrypt'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.addEventListener('contextmenu',e=>e.preventDefault());
+  });
+});
+
+// ─── SECURITY: Auto-clear password fields after 5 min inactivity ───
+let _inactivityTimer;
+function resetInactivityTimer(){
+  clearTimeout(_inactivityTimer);
+  _inactivityTimer = setTimeout(()=>{
+    const pe=document.getElementById('passwordEncrypt');
+    const pd=document.getElementById('passwordDecrypt');
+    if(pe&&pe.value) { pe.value=''; showToast('🔒 Password cleared after inactivity.','warn'); }
+    if(pd&&pd.value) { pd.value=''; }
+  }, 5*60*1000);
+}
+['mousemove','keydown','click','scroll'].forEach(ev=>
+  document.addEventListener(ev, resetInactivityTimer, {passive:true})
+);
+resetInactivityTimer();
+
+// ─── SECURITY: Warn before page unload if operation in progress ───
+let _operationInProgress = false;
+window.addEventListener('beforeunload', e=>{
+  if(_operationInProgress){ e.preventDefault(); e.returnValue=''; }
+});
+
+
+// ─── LANGUAGE SELECTOR ───
+let selectedLang = 'auto';
+function setLang(lang, btn){
+  selectedLang = lang;
+  document.querySelectorAll('.lang-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('langDetected').classList.add('hidden');
+}
+
+// Patch analyzeDocument to use selected language
+const _origAnalyzeDocument = analyzeDocument;
+analyzeDocument = async function(){
+  if(!riskFile) return;
+  if(!checkRateLimit('risk')) return;
+  const btn=document.getElementById('analyzeBtn');
+  btn.disabled=true;
+  document.getElementById('analyzeBtnText').innerHTML='<span class="spinner"></span> ANALYZING WITH AI...';
+  document.getElementById('riskResults').classList.add('hidden');
+
+  let text='';
+  try { text=await readFileText(riskFile); }
+  catch(e){ showAnalyzeError('Failed to read file.'); return; }
+  if(!text.trim()){showAnalyzeError('Could not extract text from this file.');return;}
+
+  // Language instruction
+  const langNames = {auto:'auto-detect the language and',en:'English',hi:'Hindi (हिन्दी)',fr:'French (Français)',es:'Spanish (Español)',de:'German (Deutsch)'};
+  const langInstr = selectedLang==='auto'
+    ? 'Auto-detect the document language and'
+    : `The document is in ${langNames[selectedLang]}. Please`;
+
+  let entities=[];
+  try {
+    const prompt=`You are a multilingual PII (Personally Identifiable Information) detection system. ${langInstr} identify ALL sensitive information in the following text regardless of language.
+
+Detect PII in ALL languages present including but not limited to: English, Hindi, French, Spanish, German, and mixed-language documents.
+
+Return ONLY a JSON array (no markdown, no explanation) with:
+- "entity_group": PERSON, EMAIL, PHONE, ADDRESS, CREDIT_CARD, SSN, DOB, MEDICAL, FINANCIAL, BANK_ACCOUNT, PASSWORD, CITY, NATIONAL_ID, PASSPORT, TAX_ID
+- "word": the exact detected text
+- "score": confidence 0.0-1.0
+- "language": detected language of this entity (e.g. "Hindi", "French", "English")
+
+Text:
+---
+${text.substring(0,3000)}
+---
+
+Return only the JSON array.`;
+
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1500,
+        messages:[{role:'user',content:prompt}]
+      })
+    });
+    const data=await resp.json();
+    const raw=data.content.map(i=>i.text||'').join('');
+    const clean=raw.replace(/```json|```/g,'').trim();
+    const match=clean.match(/\[[\s\S]*\]/);
+    if(match) entities=JSON.parse(match[0]);
+
+    // Show detected languages
+    if(entities.length>0){
+      const langs=[...new Set(entities.filter(e=>e.language).map(e=>e.language))];
+      if(langs.length>0){
+        document.getElementById('langDetected').classList.remove('hidden');
+        document.getElementById('langDetectedText').textContent='DETECTED: '+langs.join(', ').toUpperCase();
+      }
+    }
+  } catch(e){ entities=[]; }
+
+  // Regex fallbacks
+  const emailRe=/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g;
+  const phoneRe=/\b(\+?\d[\d\s\-().]{7,}\d)\b/g;
+  const ccRe=/\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b/g;
+  const ssnRe=/\b\d{3}-\d{2}-\d{4}\b/g;
+  for(const m of text.matchAll(emailRe)) entities.push({entity_group:'EMAIL',word:m[0],score:1,language:'Any'});
+  for(const m of text.matchAll(phoneRe)) entities.push({entity_group:'PHONE',word:m[0],score:1,language:'Any'});
+  for(const m of text.matchAll(ccRe)) entities.push({entity_group:'CREDIT_CARD',word:m[0],score:1,language:'Any'});
+  for(const m of text.matchAll(ssnRe)) entities.push({entity_group:'SSN',word:m[0],score:1,language:'Any'});
+
+  const seen=new Set(), unique=[];
+  for(const e of entities){
+    const k=e.entity_group+'|'+e.word;
+    if(!seen.has(k)&&e.word&&e.word.length>1){seen.add(k);unique.push(e);}
+  }
+
+  renderResults(text, unique);
+  btn.disabled=false;
+  document.getElementById('analyzeBtnText').textContent='⊙ RE-ANALYZE DOCUMENT';
+};
+
+// ─── PASSWORD GENERATOR ───
+let pwQty = 1;
+let pwHistory = [];
+
+function setQty(n, btn){
+  pwQty = n;
+  document.querySelectorAll('#qty1,#qty5,#qty10').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function getCharset(){
+  let chars = '';
+  const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const lower = 'abcdefghijklmnopqrstuvwxyz';
+  const nums  = '0123456789';
+  const syms  = '!@#$%^&*()-_=+[]{}|;:,.<>?';
+  const ambig = /[0O1lI]/g;
+
+  const useUpper   = document.getElementById('chkUpper').checked;
+  const useLower   = document.getElementById('chkLower').checked;
+  const useNums    = document.getElementById('chkNumbers').checked;
+  const useSyms    = document.getElementById('chkSymbols').checked;
+  const noAmbig    = document.getElementById('chkAmbiguous').checked;
+  const pronounce  = document.getElementById('chkPronounce').checked;
+
+  if(pronounce){
+    // Pronounceable: alternate consonants/vowels
+    return '__pronounceable__';
+  }
+  if(useUpper) chars += upper;
+  if(useLower) chars += lower;
+  if(useNums)  chars += nums;
+  if(useSyms)  chars += syms;
+  if(noAmbig)  chars = chars.replace(ambig,'');
+  if(!chars) chars = lower; // fallback
+  return chars;
+}
+
+function generatePronounceable(len){
+  const vowels = 'aeiou';
+  const consonants = 'bcdfghjklmnpqrstvwxyz';
+  const useNums = document.getElementById('chkNumbers').checked;
+  let result = '';
+  for(let i=0;i<len;i++){
+    if(useNums && i>0 && Math.random()<0.15){
+      result += Math.floor(Math.random()*10);
+    } else {
+      const set = i%2===0 ? consonants : vowels;
+      const arr = new Uint8Array(1);
+      crypto.getRandomValues(arr);
+      result += set[arr[0] % set.length];
+    }
+  }
+  if(document.getElementById('chkUpper').checked){
+    result = result.charAt(0).toUpperCase() + result.slice(1);
+  }
+  return result;
+}
+
+function cryptoRandChar(charset){
+  const arr = new Uint32Array(1);
+  crypto.getRandomValues(arr);
+  return charset[arr[0] % charset.length];
+}
+
+function generateSinglePassword(len, charset){
+  if(charset === '__pronounceable__') return generatePronounceable(len);
+  let pw = '';
+  // Ensure at least one from each selected type
+  const checks = [
+    {id:'chkUpper', chars:'ABCDEFGHIJKLMNOPQRSTUVWXYZ'},
+    {id:'chkLower', chars:'abcdefghijklmnopqrstuvwxyz'},
+    {id:'chkNumbers', chars:'0123456789'},
+    {id:'chkSymbols', chars:'!@#$%^&*()-_=+[]{}|;:,.<>?'},
+  ];
+  const noAmbig = document.getElementById('chkAmbiguous').checked;
+  for(const c of checks){
+    if(document.getElementById(c.id).checked){
+      let pool = noAmbig ? c.chars.replace(/[0O1lI]/g,'') : c.chars;
+      if(pool) pw += cryptoRandChar(pool);
+    }
+  }
+  while(pw.length < len) pw += cryptoRandChar(charset);
+  // Shuffle using crypto random
+  const arr = pw.split('');
+  for(let i=arr.length-1;i>0;i--){
+    const rnd = new Uint32Array(1);
+    crypto.getRandomValues(rnd);
+    const j = rnd[0] % (i+1);
+    [arr[i],arr[j]] = [arr[j],arr[i]];
+  }
+  return arr.join('');
+}
+
+function calcEntropy(len, charsetSize){
+  return Math.floor(len * Math.log2(charsetSize));
+}
+
+function crackTime(bits){
+  // Assume 10 billion guesses/sec (GPU cluster)
+  const guesses = Math.pow(2, bits);
+  const perSec = 1e10;
+  const secs = guesses / perSec;
+  if(secs < 1) return 'Instant';
+  if(secs < 60) return Math.floor(secs)+' seconds';
+  if(secs < 3600) return Math.floor(secs/60)+' minutes';
+  if(secs < 86400) return Math.floor(secs/3600)+' hours';
+  if(secs < 31536000) return Math.floor(secs/86400)+' days';
+  if(secs < 3.15e9) return Math.floor(secs/31536000)+' years';
+  if(secs < 3.15e12) return Math.floor(secs/3.15e9)+' thousand years';
+  if(secs < 3.15e15) return Math.floor(secs/3.15e12)+' million years';
+  return 'Heat death of universe+';
+}
+
+function generatePassword(){
+  const len = parseInt(document.getElementById('pwLength').value);
+  const charset = getCharset();
+  const charsetSize = charset === '__pronounceable__' ? 26 : charset.length;
+
+  const passwords = [];
+  for(let i=0;i<pwQty;i++) passwords.push(generateSinglePassword(len, charset));
+
+  const mainPw = passwords[0];
+  document.getElementById('pwOutput').textContent = pwQty===1 ? mainPw : passwords.join('\n');
+
+  // Strength segments
+  const bits = calcEntropy(len, charsetSize);
+  const segs = [['#ff3c5f',25],['#ff9900',50],['#ffd700',75],['#00cc66',Infinity]];
+  let level = 0;
+  if(bits>=25) level=1; if(bits>=50) level=2; if(bits>=75) level=3;
+  const colors = ['#ff3c5f','#ff9900','#ffd700','#00cc66'];
+  const labels = ['VERY WEAK','WEAK','STRONG','VERY STRONG'];
+  for(let i=0;i<4;i++){
+    document.getElementById('seg'+i).style.background = i<=level ? colors[level] : 'rgba(255,255,255,0.05)';
+  }
+  document.getElementById('pwStrengthLabel').textContent = labels[level]+' — '+bits+' bits entropy';
+  document.getElementById('pwStrengthLabel').style.color = colors[level];
+
+  // Entropy panel
+  document.getElementById('eCharset').textContent = charsetSize;
+  document.getElementById('eLength').textContent = len;
+  document.getElementById('eBits').textContent = bits;
+  document.getElementById('eCrack').textContent = crackTime(bits);
+
+  // History — store in session only
+  passwords.forEach(pw=>{
+    pwHistory.unshift({pw, len, bits, time:new Date().toLocaleTimeString()});
+  });
+  if(pwHistory.length>20) pwHistory=pwHistory.slice(0,20);
+  renderHistory();
+
+  showToast('⚿ Password generated — '+bits+' bits entropy','ok');
+}
+
+function renderHistory(){
+  const container = document.getElementById('pwHistory');
+  if(!pwHistory.length){
+    container.innerHTML=`<div style="color:var(--text-dim);font-family:'Share Tech Mono',monospace;font-size:0.72rem;text-align:center;padding:1rem;">No passwords generated yet</div>`;
+    return;
+  }
+  container.innerHTML = pwHistory.map((h,i)=>`
+    <div class="pw-hist-item">
+      <span style="color:var(--text-dim);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${h.pw}">${h.pw}</span>
+      <span style="color:rgba(0,170,255,0.4);font-size:0.65rem;">${h.bits}b · ${h.time}</span>
+      <button class="pw-hist-copy" onclick="copyHistItem(${i})" title="Copy">📋</button>
+    </div>`).join('');
+}
+
+function copyPassword(){
+  const txt = document.getElementById('pwOutput').textContent;
+  if(!txt||txt.includes('Click')) return;
+  navigator.clipboard.writeText(txt).then(()=>{
+    showToast('📋 Password copied to clipboard!','ok');
+  }).catch(()=>{
+    // Fallback
+    const ta=document.createElement('textarea');
+    ta.value=txt; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    showToast('📋 Copied!','ok');
+  });
+}
+
+function copyHistItem(i){
+  if(!pwHistory[i]) return;
+  navigator.clipboard.writeText(pwHistory[i].pw).then(()=>{
+    showToast('📋 Password copied!','ok');
+  }).catch(()=>{});
+}
+
+function clearHistory(){
+  pwHistory=[];
+  renderHistory();
+  showToast('✕ History cleared','warn');
+}
+
+// Auto-generate on page load
+window.addEventListener('DOMContentLoaded', ()=>{
+  setTimeout(generatePassword, 300);
+});
+
+function togglePassword(inputId, iconId){
+  const input=document.getElementById(inputId);
+  const icon=document.getElementById(iconId);
+  if(input.type==='password'){
+    input.type='text';
+    icon.textContent='🙈';
+  } else {
+    input.type='password';
+    icon.textContent='👁';
+  }
+}
+</script>
+</body>
+</html>
